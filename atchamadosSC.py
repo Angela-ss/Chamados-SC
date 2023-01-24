@@ -33,8 +33,7 @@ conexao = pyodbc.connect("""
         Trusted_Connection=yes;""".format(SERVER_NAME, DATABASE_NAME))
 
 cursor_sql = conexao.cursor()
-cursor_sql2 = conexao.cursor()
-cursor_sql3 = conexao.cursor()
+cursor_sql.fast_executemany = True
 
 # PARA LER A PLANILHA
 
@@ -57,49 +56,58 @@ df3['Data encerramento do chamado'] = df3['Data encerramento do chamado'].fillna
 
 # APAGAR REGISTROS NA TABELA
 cursor_sql.execute('DELETE TBLCHAMADOS')
-cursor_sql2.execute('DELETE TBLCHAMADOSPESQUISA')
-cursor_sql3.execute('DELETE TBLCHAMADOSREABERTOS')
+cursor_sql.execute('DELETE TBLCHAMADOSPESQUISA')
+cursor_sql.execute('DELETE TBLCHAMADOSREABERTOS')
 conexao.commit()
 
 # LINHA DE TABELA E INSERINDO NO BANCO DE DADOS
 
 # TBLCHAMADOS
+lista = []
 for index, row in df.iterrows():
     dtcriacao = row['Data de criação']
     dtprazo = row['Resolver em']
     dtatualizacao = row['Atualizado']
-    cursor_sql.execute("""
-        INSERT INTO TBLCHAMADOS (ID, STATUS, ATRIBUID, CATEGORIZACAO, MOTIVO, DTCRIACAO, DTPRAZO, DTATUALIZACAO, STATUSSLA, PRIORIDADE, GRUPOATRIBUIDO, TIPO)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, row['ID do chamado'], row['Status'], row['Atribuído'], row['Categorização'], row['Motivo'], dtcriacao,
+    lista.append([row['ID do chamado'], row['Status'], row['Atribuído'], row['Categorização'], row['Motivo'], dtcriacao,
                        dtprazo, dtatualizacao, row['Status do SLA'], row['Prioridade'], row['Grupo atribuído'],
-                       row['Tipo de Ticket'])
+                       row['Tipo de Ticket']])
+
+cursor_sql.executemany("""
+INSERT INTO TBLCHAMADOS (ID, STATUS, ATRIBUID, CATEGORIZACAO, MOTIVO, DTCRIACAO, DTPRAZO, DTATUALIZACAO, STATUSSLA, PRIORIDADE, GRUPOATRIBUIDO, TIPO)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+""", lista)
+
+lista.clear()
 
 # TBLCHAMADOSPESQUISA
 for index, row in df2.iterrows():
     dtenvio = row['Data Envio']
     dtresposta = row['Data Resposta']
     analista = row['ANALISTA']
-    cursor_sql2.execute("""
-        INSERT INTO TBLCHAMADOSPESQUISA (ID, QUEMRESPONDEU, DTENVIO, DTRESPOSTA, PERGUNTA, RESPOSTA, GRUPO, ANALISTA)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, row['TICKET'], row['QUEM_RESPONDEU'], dtenvio, dtresposta, row['PERGUNTA'], row['RESPOSTA'],
-                        row['GRUPO_SOLUCIONADOR'], analista)
+
+    lista.append([row['TICKET'], row['QUEM_RESPONDEU'], dtenvio, dtresposta, row['PERGUNTA'], row['RESPOSTA'],
+                        row['GRUPO_SOLUCIONADOR'], analista])
+
+cursor_sql.executemany("""
+    INSERT INTO TBLCHAMADOSPESQUISA (ID, QUEMRESPONDEU, DTENVIO, DTRESPOSTA, PERGUNTA, RESPOSTA, GRUPO, ANALISTA)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+""", lista)
+
+lista.clear()
 
 # TBLCHAMADOSREABERTOS
 for index, row in df3.iterrows():
     dtabertura = row['Data Abertura do chamado']
     dtencerramento = row['Data encerramento do chamado']
     dtacao = row['Data da ação']
-    cursor_sql3.execute("""
-        INSERT INTO TBLCHAMADOSREABERTOS (ID, DTABERTURA, DTENCERRAMENTO, STATUS, CATEGORIZACAO, DTACAO, ACAO, GRUPO, ANALISTA)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, row['TicketID'], dtabertura, dtencerramento, row['Status Atual'], row['Categorização'], dtacao, row['Ação'],
-                        row['Resolvido pelo grupo'], row['Resolvido por'])
+    lista.append([row['TicketID'], dtabertura, dtencerramento, row['Status Atual'], row['Categorização'], dtacao, row['Ação'], row['Resolvido pelo grupo'], row['Resolvido por']])
+
+cursor_sql.executemany("""
+    INSERT INTO TBLCHAMADOSREABERTOS (ID, DTABERTURA, DTENCERRAMENTO, STATUS, CATEGORIZACAO, DTACAO, ACAO, GRUPO, ANALISTA)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+""", lista)
 
 conexao.commit()
 cursor_sql.close()
-cursor_sql2.close()
-cursor_sql3.close()
 conexao.close()
 
