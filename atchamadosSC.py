@@ -40,7 +40,6 @@ cursor_sql.fast_executemany = True
 df = pd.read_excel(
     f"C:\\Users\\agsilva11\\OneDrive - Stefanini\\Documents\\Particular\\"
     f"Atualizar_TBLCHAMADOS\\Diário_Chamados {dia}-{mes}-{now.year}.xlsx")
-df.drop(labels=["Solicitante", "Descrição", "Detalhes", "Organização do solicitante"], axis=1, inplace=True)
 df['Resolver em'] = df['Resolver em'].fillna(value=pd.to_datetime('01-01-1900 00:00:00'))
 
 df2 = pd.read_excel(
@@ -68,15 +67,18 @@ for index, row in df.iterrows():
     dtcriacao = row['Data de criação']
     dtprazo = row['Resolver em']
     dtatualizacao = row['Atualizado']
+    solicitante = str(row['Solicitante'])
+    email = str(row['Email do solicitante'])
+    cpf = str(row['CPF do solicitante'])
+    detalhes = str(row['Detalhes'])
     lista.append([row['ID do chamado'], row['Status'], row['Atribuído'], row['Categorização'], row['Motivo'], dtcriacao,
                        dtprazo, dtatualizacao, row['Status do SLA'], row['Prioridade'], row['Grupo atribuído'],
-                       row['Tipo de Ticket']])
+                       row['Tipo de Ticket'], solicitante, email, cpf, detalhes])
 
 cursor_sql.executemany("""
-INSERT INTO TBLCHAMADOS (ID, STATUS, ATRIBUID, CATEGORIZACAO, MOTIVO, DTCRIACAO, DTPRAZO, DTATUALIZACAO, STATUSSLA, PRIORIDADE, GRUPOATRIBUIDO, TIPO)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO TBLCHAMADOS (ID, STATUS, ATRIBUID, CATEGORIZACAO, MOTIVO, DTCRIACAO, DTPRAZO, DTATUALIZACAO, STATUSSLA, PRIORIDADE, GRUPOATRIBUIDO, TIPO, SOLICITANTE, EMAIL, CPF, DETALHES)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 """, lista)
-
 lista.clear()
 
 # TBLCHAMADOSPESQUISA
