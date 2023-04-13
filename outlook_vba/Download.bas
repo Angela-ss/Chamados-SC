@@ -1,6 +1,8 @@
 Attribute VB_Name = "Download"
 Sub downloadAnexo(MItem As Outlook.MailItem)
     
+    On Error Resume Next
+    
     Dim OutAnexo As Outlook.Attachment
     Dim caminho_completo As String
     
