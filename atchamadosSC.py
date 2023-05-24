@@ -26,6 +26,11 @@ else:
 SERVER_NAME = 'SOALV3SQLPROD,1438'
 DATABASE_NAME = 'dbEAcesso'
 
+# PARA TESTES:
+# SERVER_NAME = 'SOALV3HMLCL01,1438'
+# DATABASE_NAME = 'dbEAcesso_daily'
+
+
 conexao = pyodbc.connect("""
         Driver={{SQL Server Native Client 11.0}};
         Server={0};
@@ -70,14 +75,15 @@ for index, row in df.iterrows():
     solicitante = str(row['Solicitante'])
     email = str(row['Email do solicitante'])
     cpf = str(row['CPF do solicitante'])
+    descricao = str(row['Descrição'])
     detalhes = str(row['Detalhes'])
     lista.append([row['ID do chamado'], row['Status'], row['Atribuído'], row['Categorização'], row['Motivo'], dtcriacao,
                        dtprazo, dtatualizacao, row['Status do SLA'], row['Prioridade'], row['Grupo atribuído'],
-                       row['Tipo de Ticket'], solicitante, email, cpf, detalhes])
+                       row['Tipo de Ticket'], solicitante, email, cpf, descricao, detalhes])
 
 cursor_sql.executemany("""
-INSERT INTO TBLCHAMADOS (ID, STATUS, ATRIBUID, CATEGORIZACAO, MOTIVO, DTCRIACAO, DTPRAZO, DTATUALIZACAO, STATUSSLA, PRIORIDADE, GRUPOATRIBUIDO, TIPO, SOLICITANTE, EMAIL, CPF, DETALHES)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO TBLCHAMADOS (ID, STATUS, ATRIBUID, CATEGORIZACAO, MOTIVO, DTCRIACAO, DTPRAZO, DTATUALIZACAO, STATUSSLA, PRIORIDADE, GRUPOATRIBUIDO, TIPO, SOLICITANTE, EMAIL, CPF, DESCRICAO, DETALHES)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
 """, lista)
 lista.clear()
 
@@ -108,6 +114,17 @@ cursor_sql.executemany("""
     INSERT INTO TBLCHAMADOSREABERTOS (ID, DTABERTURA, DTENCERRAMENTO, STATUS, CATEGORIZACAO, DTACAO, ACAO, GRUPO, ANALISTA)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 """, lista)
+
+cursor_sql.execute("""
+WITH ID AS (
+    SELECT
+        ID,
+        ROW_NUMBER() OVER (PARTITION BY ID ORDER BY ID) AS RowNumber
+    FROM
+        TBLCHAMADOSREABERTOS
+)
+DELETE FROM ID WHERE RowNumber > 1;
+""")
 
 conexao.commit()
 cursor_sql.close()
